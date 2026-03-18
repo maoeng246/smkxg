@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Calendar, Clock, Users, Mail, Phone, User, CheckCircle2, Download, X, QrCode } from 'lucide-react';
 import { dbService, ReservationData } from '../services/db';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 
 export default function Reservation() {
   const [formData, setFormData] = useState({
@@ -46,46 +46,23 @@ export default function Reservation() {
     
     setIsDownloading(true);
     try {
-      // 获取原元素的尺寸
-      const rect = element.getBoundingClientRect();
+      // 确保元素完全渲染后再截图
+      await new Promise(resolve => setTimeout(resolve, 200));
       
-      // 创建一个临时的容器，放在 body 下，脱离所有 transform 动画的影响
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '-9999px';
-      tempContainer.style.width = `${rect.width}px`;
-      tempContainer.style.height = `${rect.height}px`;
-      document.body.appendChild(tempContainer);
-
-      // 克隆凭证元素
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.style.width = '100%';
-      clone.style.height = '100%';
-      clone.style.margin = '0';
-      tempContainer.appendChild(clone);
-
-      // 等待 DOM 更新
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // 使用 html2canvas 截图克隆的元素
-      const canvas = await html2canvas(clone, { 
-        scale: 3, // 提高清晰度
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 3,
         backgroundColor: '#ffffff',
-        useCORS: true,
-        allowTaint: true,
-        width: rect.width,
-        height: rect.height
+        style: {
+          transform: 'none',
+          margin: '0',
+          boxShadow: 'none'
+        }
       });
       
-      // 移除临时容器
-      document.body.removeChild(tempContainer);
-      
-      // 转换为图片并触发下载
-      const imgData = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = `LSM展馆预约凭证_${voucher?.id}.png`;
-      link.href = imgData;
+      link.href = dataUrl;
       link.click();
       
     } catch (error) {
