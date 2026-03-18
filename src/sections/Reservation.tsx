@@ -40,7 +40,7 @@ export default function Reservation() {
     }
   };
 
-  const downloadVoucher = async () => {
+  const downloadPDF = async () => {
     const element = document.getElementById('voucher-ticket');
     if (!element) return;
     
@@ -60,14 +60,33 @@ export default function Reservation() {
         }
       });
       
-      const link = document.createElement('a');
-      link.download = `LSM展馆预约凭证_${voucher?.id}.png`;
-      link.href = dataUrl;
-      link.click();
+      // 获取原元素的尺寸用于计算比例
+      const rect = element.getBoundingClientRect();
+      const imgWidth = rect.width;
+      const imgHeight = rect.height;
+      
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // 获取 A4 纸张宽度
+      const pdfWidth = pdf.internal.pageSize.getWidth ? pdf.internal.pageSize.getWidth() : 210;
+      
+      // 调整凭证在 PDF 中的大小和居中位置 (占据页面宽度的 70%)
+      const targetWidth = pdfWidth * 0.7;
+      const targetHeight = (imgHeight * targetWidth) / imgWidth;
+      const xOffset = (pdfWidth - targetWidth) / 2;
+      const yOffset = 20;
+      
+      pdf.addImage(dataUrl, 'PNG', xOffset, yOffset, targetWidth, targetHeight);
+      pdf.save(`LSM展馆预约凭证_${voucher?.id}.pdf`);
       
     } catch (error) {
-      console.error('Image generation failed', error);
-      alert(`图片生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      console.error('PDF generation failed', error);
+      alert(`PDF 生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsDownloading(false);
     }
@@ -307,7 +326,7 @@ export default function Reservation() {
             </div>
 
             <button
-              onClick={downloadVoucher}
+              onClick={downloadPDF}
               disabled={isDownloading}
               className="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 shrink-0"
             >
@@ -315,7 +334,7 @@ export default function Reservation() {
                 <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
               ) : (
                 <>
-                  <Download className="w-4 h-4" /> 保存凭证为图片
+                  <Download className="w-4 h-4" /> 保存凭证为 PDF
                 </>
               )}
             </button>
