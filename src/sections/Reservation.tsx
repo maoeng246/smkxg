@@ -1,7 +1,39 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, Users, Mail, Phone, User } from 'lucide-react';
+import { Calendar, Clock, Users, Mail, Phone, User, CheckCircle2 } from 'lucide-react';
+import { dbService } from '../services/db';
 
 export default function Reservation() {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    date: '',
+    visitors: '1',
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone || !formData.date) {
+      alert('请填写必填项（姓名、电话、日期）');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await dbService.saveReservation(formData);
+      setIsSuccess(true);
+      setFormData({ name: '', phone: '', date: '', visitors: '1', notes: '' });
+      setTimeout(() => setIsSuccess(false), 5000);
+    } catch (error) {
+      console.error('Failed to save reservation:', error);
+      alert('预约提交失败，请重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -75,25 +107,42 @@ export default function Reservation() {
             viewport={{ once: true }}
             variants={containerVariants}
             className="space-y-6" 
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={handleSubmit}
           >
+            {isSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl flex items-center gap-3"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                <span>预约提交成功！我们将尽快与您联系确认。</span>
+              </motion.div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <motion.div variants={itemVariants} className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <User className="w-4 h-4" /> 姓名
+                  <User className="w-4 h-4" /> 姓名 <span className="text-emerald-500">*</span>
                 </label>
                 <input
                   type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   placeholder="请输入您的姓名"
                 />
               </motion.div>
               <motion.div variants={itemVariants} className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <Phone className="w-4 h-4" /> 联系电话
+                  <Phone className="w-4 h-4" /> 联系电话 <span className="text-emerald-500">*</span>
                 </label>
                 <input
                   type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   placeholder="请输入手机号码"
                 />
@@ -103,10 +152,13 @@ export default function Reservation() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <motion.div variants={itemVariants} className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" /> 预约日期
+                  <Calendar className="w-4 h-4" /> 预约日期 <span className="text-emerald-500">*</span>
                 </label>
                 <input
                   type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all [color-scheme:dark]"
                 />
               </motion.div>
@@ -114,7 +166,11 @@ export default function Reservation() {
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                   <Users className="w-4 h-4" /> 参观人数
                 </label>
-                <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none">
+                <select 
+                  value={formData.visitors}
+                  onChange={(e) => setFormData({...formData, visitors: e.target.value})}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none"
+                >
                   <option value="1">1 人</option>
                   <option value="2">2 人</option>
                   <option value="3-5">3-5 人</option>
@@ -127,6 +183,8 @@ export default function Reservation() {
               <label className="text-sm font-medium text-zinc-400">备注信息 (选填)</label>
               <textarea
                 rows={4}
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all resize-none"
                 placeholder="如有特殊需求请在此说明..."
               />
@@ -135,9 +193,14 @@ export default function Reservation() {
             <motion.button
               variants={itemVariants}
               type="submit"
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition-colors duration-300"
+              disabled={isSubmitting}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-black font-bold py-4 rounded-xl transition-colors duration-300 flex justify-center items-center"
             >
-              提交预约申请
+              {isSubmitting ? (
+                <div className="w-6 h-6 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : (
+                '提交预约申请'
+              )}
             </motion.button>
           </motion.form>
         </motion.div>

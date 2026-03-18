@@ -3,26 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Hero from './sections/Hero';
-import About from './sections/About';
-import Students from './sections/Students';
-import Exhibition from './sections/Exhibition';
-import Reservation from './sections/Reservation';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Admin from './pages/Admin';
 
 export default function App() {
   return (
-    <div className="bg-black min-h-screen text-white selection:bg-emerald-500/30">
-      <Navbar />
-      <main>
-        <Hero />
-        <About />
-        <Students />
-        <Exhibition />
-        <Reservation />
-      </main>
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<Admin />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
